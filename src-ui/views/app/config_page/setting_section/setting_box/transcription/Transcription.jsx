@@ -218,6 +218,7 @@ const TranscriptionEngine_Box = () => {
             options={[
                 { id: "Google", label: "Google" },
                 { id: "Whisper", label: "Whisper" },
+                { id: "Qwen", label: "Qwen" },
             ]}
             checked_variable={currentSelectedTranscriptionEngine}
         />
@@ -284,8 +285,8 @@ const TranscriptionComputeDevice_Box = () => {
             currentDeviceList={currentSelectableTranscriptionComputeDeviceList}
             currentSelectedDevice={currentSelectedTranscriptionComputeDevice}
             setSelectedDevice={setSelectedTranscriptionComputeDevice}
-            currentSelectedComputeType={currentSelectedTranscriptionComputeType}
-            setSelectedComputeType={setSelectedTranscriptionComputeType}
+            currentSelectedComputeType={currentSelectedComputeType}
+            setSelectedComputeType={setSelectedComputeType}
         />
     );
 };
