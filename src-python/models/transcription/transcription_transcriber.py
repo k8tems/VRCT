@@ -1,9 +1,12 @@
-"""Runtime transcriber that wraps Google SpeechRecognition and faster-whisper.
+"""Runtime transcriber that wraps Google SpeechRecognition, faster-whisper, and Qwen ASR.
 
 This class focuses on converting incoming raw audio buffers into text using
-either the Google web recognizer (online) or a local Whisper model (offline).
+the Google web recognizer (online), a local Whisper model (offline), or a
+Qwen ASR server that exposes an OpenAI-compatible API.
 """
 
+import os
+import tempfile
 import time
 from io import BytesIO
 from threading import Event
@@ -16,6 +19,7 @@ from pyaudiowpatch import get_sample_size, paInt16
 from .transcription_languages import transcription_lang
 from .transcription_whisper import getWhisperModel, checkWhisperWeight
 
+from openai import OpenAI
 import torch
 import numpy as np
 from pydub import AudioSegment
@@ -26,6 +30,9 @@ warnings.simplefilter('ignore', RuntimeWarning)
 
 PHRASE_TIMEOUT = 3
 MAX_PHRASES = 10
+QWEN_HOST = "192.168.1.3"
+QWEN_BASE_URL = f"http://{QWEN_HOST}:8765/v1"
+QWEN_MODEL = "Qwen/Qwen3-ASR-0.6B"
 
 
 class AudioTranscriber:
@@ -76,6 +83,8 @@ class AudioTranscriber:
                 root, whisper_weight_type, device=device, device_index=device_index, compute_type=compute_type
             )
             self.transcription_engine = "Whisper"
+        elif transcription_engine == "Qwen":
+            self.transcription_engine = "Qwen"
 
     def transcribeAudioQueue(
         self,
@@ -146,6 +155,15 @@ class AudioTranscriber:
                             transcription_lang[language][country][self.transcription_engine] == info.language
                         ):
                             break
+                case "Qwen":
+                    language = None
+                    result_language = None
+                    if len(languages) == 1:
+                        language = transcription_lang[languages[0]][countries[0]][self.transcription_engine]
+                        result_language = languages[0]
+
+                    text = self.transcribeQwen(audio_data, language=language)
+                    confidences.append({"confidence": 1, "text": text, "language": result_language})
 
         except UnknownValueError:
             pass
@@ -195,6 +213,35 @@ class AudioTranscriber:
         with AudioFile(temp_file) as source:
             audio = self.audio_recognizer.record(source)
         return audio
+
+    @staticmethod
+    def transcribeQwen(audio_data: AudioData, language: Optional[str] = None) -> str:
+        client = OpenAI(
+            api_key="test",
+            base_url=QWEN_BASE_URL,
+        )
+
+        temp_file_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                temp_file.write(audio_data.get_wav_data(convert_rate=16000, convert_width=2))
+                temp_file_path = temp_file.name
+
+            with open(temp_file_path, "rb") as audio_file:
+                response = client.audio.transcriptions.create(
+                    model=QWEN_MODEL,
+                    file=audio_file,
+                    language=language,
+                    response_format="verbose_json",
+                )
+
+            return response.text
+        finally:
+            if temp_file_path is not None:
+                try:
+                    os.remove(temp_file_path)
+                except OSError:
+                    pass
 
     def updateTranscript(self, result: dict) -> None:
         source_info = self.audio_sources
