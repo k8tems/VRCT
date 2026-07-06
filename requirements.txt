@@ -20,6 +20,7 @@ huggingface_hub==0.32.2
 hf-xet==1.1.2
 setuptools==80.8.0
 langchain-openai==0.3.32
+openai==1.107.1
 langchain-google-genai==2.1.10
 google-genai==1.45.0
 grpcio==1.67.1
