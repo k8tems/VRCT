@@ -285,8 +285,8 @@ const TranscriptionComputeDevice_Box = () => {
             currentDeviceList={currentSelectableTranscriptionComputeDeviceList}
             currentSelectedDevice={currentSelectedTranscriptionComputeDevice}
             setSelectedDevice={setSelectedTranscriptionComputeDevice}
-            currentSelectedComputeType={currentSelectedComputeType}
-            setSelectedComputeType={setSelectedComputeType}
+            currentSelectedComputeType={currentSelectedTranscriptionComputeType}
+            setSelectedComputeType={setSelectedTranscriptionComputeType}
         />
     );
 };
